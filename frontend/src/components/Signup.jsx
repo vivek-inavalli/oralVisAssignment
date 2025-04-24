@@ -13,8 +13,7 @@ const Signup = () => {
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
-  // Base URL from env
-  // const BASE_URL = process.env.REACT_APP_API_URL;
+  const BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:3000";
 
   const handleChange = (e) => {
     setFormData((fd) => ({
@@ -36,10 +35,10 @@ const Signup = () => {
     try {
       const endpoint =
         formData.role === "patient"
-          ? "/api/users/signup"
+          ? "/api/user/signup"
           : "/api/dentists/signup";
 
-      await axios.post(`${import.meta.env.REACT_APP_API_URL}${endpoint}`, {
+      await axios.post(`${BASE_URL}${endpoint}`, {
         username: formData.username,
         password: formData.password,
       });

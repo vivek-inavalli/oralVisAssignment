@@ -14,8 +14,6 @@ const Login = () => {
   const { login } = useContext(AuthContext);
   const navigate = useNavigate();
 
-  // const BASE_URL = process.env.REACT_APP_API_URL;
-
   const handleChange = (e) => {
     setFormData((fd) => ({
       ...fd,
@@ -30,9 +28,7 @@ const Login = () => {
 
     try {
       const endpoint =
-        formData.role === "patient"
-          ? "/api/users/login"
-          : "/api/dentists/login";
+        formData.role === "patient" ? "/api/user/login" : "/api/dentists/login";
 
       const res = await axios.post(
         `${import.meta.env.VITE_API_URL}${endpoint}`,
