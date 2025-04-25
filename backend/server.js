@@ -7,7 +7,7 @@ const multer = require("multer");
 const cors = require("cors");
 const jwt = require("jsonwebtoken");
 const path = require("path");
-
+const fs = require("fs");
 const app = express();
 
 app.use(cors());
@@ -20,10 +20,16 @@ mongoose
   .then(() => console.log("MongoDB connected"))
   .catch((err) => console.error("MongoDB connection error:", err));
 
+const uploadDir = path.join(__dirname, "uploads");
+if (!fs.existsSync(uploadDir)) {
+  fs.mkdirSync(uploadDir);
+}
+
 const storage = multer.diskStorage({
-  destination: (req, file, cb) => cb(null, "uploads/"),
+  destination: (req, file, cb) => cb(null, uploadDir),
   filename: (req, file, cb) => cb(null, `${Date.now()}-${file.originalname}`),
 });
+
 const upload = multer({ storage });
 
 const SECRET = process.env.SECRET;
@@ -153,6 +159,19 @@ app.post("/api/checkup-requests", authenticateToken, async (req, res) => {
   }
 });
 
+// Patient views their checkup requests
+app.get("/api/checkup-requests", authenticateToken, async (req, res) => {
+  if (req.user.role !== "patient") return res.sendStatus(403);
+  try {
+    const requests = await CheckupRequest.find({
+      patient: req.user.id,
+    }).populate("dentist", "username");
+    res.json(requests);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // Dentist views assigned requests
 app.get(
   "/api/dentist/checkup-requests",
@@ -177,22 +196,34 @@ app.post(
   upload.array("images", 10),
   async (req, res) => {
     if (req.user.role !== "dentist") return res.sendStatus(403);
+
     try {
+      console.log("Uploading result for request:", req.params.requestId);
+      console.log("Files:", req.files);
+      console.log("Notes:", req.body.notes);
+
+      const request = await CheckupRequest.findById(req.params.requestId);
+      if (!request) return res.status(404).json({ error: "Request not found" });
+
       const imagePaths = req.files.map(
         (f) => `/uploads/${path.basename(f.path)}`
       );
       const { notes } = req.body;
+
       const result = new CheckupResult({
         checkupRequest: req.params.requestId,
         images: imagePaths,
         notes,
       });
       await result.save();
+
       await CheckupRequest.findByIdAndUpdate(req.params.requestId, {
         status: "completed",
       });
+
       res.json(result);
     } catch (err) {
+      console.error("Upload error:", err);
       res.status(500).json({ error: err.message });
     }
   }

@@ -13,9 +13,6 @@ const PatientDashboard = () => {
   const [submitLoading, setSubmitLoading] = useState(false);
   const [successMessage, setSuccessMessage] = useState("");
 
-  // derive base URL from env var
-  // const BASE_URL = process.env.REACT_APP_API_URL;
-
   useEffect(() => {
     const fetchData = async () => {
       setLoading(true);

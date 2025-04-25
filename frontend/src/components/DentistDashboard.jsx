@@ -11,6 +11,7 @@ const DentistDashboard = () => {
   const [formData, setFormData] = useState({ notes: "", images: [] });
   const [submitLoading, setSubmitLoading] = useState(false);
   const [successMessage, setSuccessMessage] = useState("");
+  const [completedResult, setCompletedResult] = useState(null);
 
   useEffect(() => {
     const fetchRequests = async () => {
@@ -37,13 +38,29 @@ const DentistDashboard = () => {
       setError("You must be logged in as a dentist");
       setLoading(false);
     }
-  }, [user, import.meta.env.VITE_API_URL]);
+  }, [user]);
 
-  const handleSelectRequest = (request) => {
+  const handleSelectRequest = async (request) => {
     setSelectedRequest(request);
     setFormData({ notes: "", images: [] });
     setError("");
     setSuccessMessage("");
+    setCompletedResult(null);
+
+    if (request.status === "completed") {
+      try {
+        const res = await axios.get(
+          `${import.meta.env.VITE_API_URL}/api/checkup-results/${request._id}`,
+          {
+            headers: { Authorization: `Bearer ${user.token}` },
+          }
+        );
+        setCompletedResult(res.data);
+      } catch (err) {
+        console.error(err);
+        setError("Failed to load completed result.");
+      }
+    }
   };
 
   const handleChange = (e) => {
@@ -84,7 +101,6 @@ const DentistDashboard = () => {
         }
       );
 
-      // Refresh requests
       const res = await axios.get(
         `${import.meta.env.VITE_API_URL}/api/dentist/checkup-requests`,
         {
@@ -110,7 +126,7 @@ const DentistDashboard = () => {
   }
 
   return (
-    <div className="max-w-4xl mx-auto">
+    <div className="max-w-5xl mx-auto">
       <h2 className="text-2xl font-bold mb-6">Dentist Dashboard</h2>
 
       {error && (
@@ -126,7 +142,7 @@ const DentistDashboard = () => {
       )}
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        {/* Requests List */}
+        {/* Checkup Requests List */}
         <div className="md:col-span-1 bg-white p-6 rounded-lg shadow-md">
           <h3 className="text-xl font-semibold mb-4">Checkup Requests</h3>
           {requests.length === 0 ? (
@@ -166,18 +182,36 @@ const DentistDashboard = () => {
           )}
         </div>
 
-        {/* Selected Request Form */}
+        {/* Selected Request Details */}
         <div className="md:col-span-2 bg-white p-6 rounded-lg shadow-md">
           {selectedRequest ? (
             <>
               <h3 className="text-xl font-semibold mb-4">
-                Upload Results for{" "}
-                {selectedRequest.patient?.username || "Patient"}
+                {selectedRequest.patient?.username || "Patient"}'s Checkup
               </h3>
 
-              {selectedRequest.status === "completed" ? (
-                <div className="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded mb-4">
-                  Results already submitted.
+              {selectedRequest.status === "completed" && completedResult ? (
+                <div>
+                  <div className="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded mb-4">
+                    Results already submitted.
+                  </div>
+                  <div className="mb-4">
+                    <h4 className="font-medium mb-2">Notes:</h4>
+                    <p className="text-gray-700">{completedResult.notes}</p>
+                  </div>
+                  <div>
+                    <h4 className="font-medium mb-2">Uploaded Images:</h4>
+                    <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                      {completedResult.images.map((img, idx) => (
+                        <img
+                          key={idx}
+                          src={`${import.meta.env.VITE_API_URL}${img}`}
+                          alt={`Dental ${idx + 1}`}
+                          className="w-full h-40 object-cover rounded-md border"
+                        />
+                      ))}
+                    </div>
+                  </div>
                 </div>
               ) : (
                 <form onSubmit={handleSubmit}>
