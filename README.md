@@ -1,4 +1,4 @@
-# Agrofix Assignment
+# OralVis Assignment
 
 ## Backend Setup
 
